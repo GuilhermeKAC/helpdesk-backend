@@ -1,0 +1,227 @@
+// HelpDesk Database Schema
+// Engine: PostgreSQL
+// Generated: 2026-05-18
+
+Project HelpDesk {
+  database_type: 'PostgreSQL'
+  Note: 'HelpDesk API — ticket management system'
+}
+
+// ─── USERS ───────────────────────────────────────────────────────────────────
+
+Table users {
+  id             bigserial     [pk, increment]
+  name           varchar(255)  [not null]
+  email          varchar(255)  [unique, not null]
+  email_verified_at timestamp  [null]
+  password       varchar(255)  [not null]
+  role           varchar(20)   [not null, default: 'customer', note: 'admin | technician | customer']
+  is_active      boolean       [not null, default: true]
+  last_login_at  timestamp     [null]
+  phone          varchar(20)   [null]
+  preferences    jsonb         [null, note: 'notification prefs, UI settings']
+  remember_token varchar(100)  [null]
+  deleted_at     timestamp     [null]
+  created_at     timestamp     [not null]
+  updated_at     timestamp     [not null]
+
+  indexes {
+    (role, is_active) [name: 'users_role_active_idx']
+    email             [name: 'users_email_idx']
+    created_at        [name: 'users_created_at_idx']
+  }
+}
+
+// ─── CATEGORIES ──────────────────────────────────────────────────────────────
+
+Table categories {
+  id                          bigserial    [pk, increment]
+  name                        varchar(255) [unique, not null]
+  description                 text         [null]
+  color                       char(7)      [not null, default: '#3B82F6', note: 'hex color']
+  icon                        varchar(100) [not null, default: 'DocumentIcon']
+  auto_assign_technician_id   bigint       [null, ref: > users.id]
+  sla_hours                   int          [not null, default: 48]
+  is_active                   boolean      [not null, default: true]
+  created_at                  timestamp    [not null]
+  updated_at                  timestamp    [not null]
+
+  indexes {
+    is_active  [name: 'categories_active_idx']
+    name       [name: 'categories_name_idx']
+  }
+}
+
+// ─── TICKETS ─────────────────────────────────────────────────────────────────
+
+Table tickets {
+  id               bigserial    [pk, increment]
+  ticket_number    varchar(20)  [unique, not null, note: 'HD-YYYY-XXXXXX — auto via PG trigger']
+  user_id          bigint       [not null, ref: > users.id]
+  technician_id    bigint       [null, ref: > users.id]
+  category_id      bigint       [not null, ref: > categories.id]
+  title            varchar(255) [not null]
+  description      text         [not null]
+  status           varchar(20)  [not null, default: 'open', note: 'open | in_progress | pending | resolved | closed']
+  priority         varchar(10)  [not null, default: 'medium', note: 'low | medium | high | urgent']
+  assigned_at      timestamp    [null]
+  resolved_at      timestamp    [null]
+  closed_at        timestamp    [null]
+  due_date         timestamp    [null, note: 'calculated from priority SLA']
+  response_time    int          [null, note: 'minutes from created to first reply']
+  resolution_time  int          [null, note: 'minutes from created to resolved']
+  metadata         jsonb        [null, note: 'extra fields, custom data']
+  deleted_at       timestamp    [null]
+  created_at       timestamp    [not null]
+  updated_at       timestamp    [not null]
+
+  indexes {
+    (user_id, status)       [name: 'tickets_user_status_idx']
+    (technician_id, status) [name: 'tickets_tech_status_idx']
+    (status, priority)      [name: 'tickets_status_priority_idx']
+    ticket_number           [name: 'tickets_number_idx']
+    created_at              [name: 'tickets_created_at_idx']
+    metadata                [name: 'tickets_metadata_gin_idx', type: gin]
+  }
+
+  Note: 'ticket_number auto-generated via PostgreSQL trigger + sequence'
+}
+
+// ─── TICKET REPLIES ───────────────────────────────────────────────────────────
+
+Table ticket_replies {
+  id          bigserial [pk, increment]
+  ticket_id   bigint    [not null, ref: > tickets.id]
+  user_id     bigint    [not null, ref: > users.id]
+  message     text      [not null]
+  attachments jsonb     [null, note: 'array of attachment IDs']
+  is_internal boolean   [not null, default: false, note: 'internal notes, hidden from customer']
+  created_at  timestamp [not null]
+  updated_at  timestamp [not null]
+
+  indexes {
+    (ticket_id, created_at) [name: 'replies_ticket_created_idx']
+    user_id                 [name: 'replies_user_idx']
+    is_internal             [name: 'replies_internal_idx']
+    message                 [name: 'replies_message_gin_idx', type: gin]
+  }
+}
+
+// ─── ATTACHMENTS ─────────────────────────────────────────────────────────────
+
+Table attachments {
+  id              bigserial    [pk, increment]
+  attachable_type varchar(255) [not null, note: 'App\\Models\\Ticket | App\\Models\\TicketReply']
+  attachable_id   bigint       [not null]
+  user_id         bigint       [not null, ref: > users.id]
+  filename        varchar(255) [not null, note: 'stored filename (uuid)']
+  original_name   varchar(255) [not null, note: 'original upload name']
+  mime_type       varchar(100) [not null]
+  size            int          [not null, note: 'bytes']
+  path            varchar(500) [not null]
+  disk            varchar(20)  [not null, default: 'public']
+  metadata        jsonb        [null, note: 'width, height for images; pages for PDFs']
+  created_at      timestamp    [not null]
+  updated_at      timestamp    [not null]
+
+  indexes {
+    (attachable_type, attachable_id) [name: 'attachments_morphs_idx']
+    user_id                          [name: 'attachments_user_idx']
+    created_at                       [name: 'attachments_created_at_idx']
+  }
+}
+
+// ─── TICKET ACTIVITIES ────────────────────────────────────────────────────────
+
+Table ticket_activities {
+  id         bigserial    [pk, increment]
+  ticket_id  bigint       [not null, ref: > tickets.id]
+  user_id    bigint       [null, ref: > users.id, note: 'null = system action']
+  action     varchar(50)  [not null, note: 'created | assigned | status_changed | replied | escalated']
+  old_value  jsonb        [null]
+  new_value  jsonb        [null]
+  ip_address varchar(45)  [null]
+  user_agent text         [null]
+  created_at timestamp    [not null]
+  updated_at timestamp    [not null]
+
+  indexes {
+    (ticket_id, created_at) [name: 'activities_ticket_created_idx']
+    user_id                 [name: 'activities_user_idx']
+    action                  [name: 'activities_action_idx']
+    created_at              [name: 'activities_created_at_idx']
+  }
+}
+
+// ─── SANCTUM PERSONAL ACCESS TOKENS ─────────────────────────────────────────
+
+Table personal_access_tokens {
+  id             bigserial    [pk, increment]
+  tokenable_type varchar(255) [not null]
+  tokenable_id   bigint       [not null]
+  name           varchar(255) [not null]
+  token          varchar(64)  [unique, not null]
+  abilities      text         [null]
+  last_used_at   timestamp    [null]
+  expires_at     timestamp    [null]
+  created_at     timestamp    [not null]
+  updated_at     timestamp    [not null]
+
+  indexes {
+    (tokenable_type, tokenable_id) [name: 'tokens_tokenable_idx']
+  }
+}
+
+// ─── SPATIE PERMISSIONS ───────────────────────────────────────────────────────
+
+Table permissions {
+  id         bigserial    [pk, increment]
+  name       varchar(255) [not null]
+  guard_name varchar(255) [not null]
+  created_at timestamp    [not null]
+  updated_at timestamp    [not null]
+}
+
+Table roles {
+  id         bigserial    [pk, increment]
+  name       varchar(255) [not null]
+  guard_name varchar(255) [not null]
+  created_at timestamp    [not null]
+  updated_at timestamp    [not null]
+}
+
+Table model_has_roles {
+  role_id    bigint       [not null, ref: > roles.id]
+  model_type varchar(255) [not null]
+  model_id   bigint       [not null]
+}
+
+Table role_has_permissions {
+  permission_id bigint [not null, ref: > permissions.id]
+  role_id       bigint [not null, ref: > roles.id]
+}
+
+// ─── LARAVEL INTERNALS ────────────────────────────────────────────────────────
+
+Table cache {
+  key        varchar(255) [pk]
+  value      mediumtext   [not null]
+  expiration int          [not null]
+}
+
+Table jobs {
+  id           bigserial    [pk, increment]
+  queue        varchar(255) [not null]
+  payload      longtext     [not null]
+  attempts     tinyint      [not null]
+  reserved_at  int          [null]
+  available_at int          [not null]
+  created_at   int          [not null]
+}
+
+// ─── NOTES ────────────────────────────────────────────────────────────────────
+// 1. ticket_number: PostgreSQL trigger + sequence (HD-YYYY-000001)
+// 2. attachments: polymorphic (ticket ou ticket_reply)
+// 3. GIN indexes: metadata (jsonb) + message (tsvector/text)
+// 4. softDeletes: users + tickets (deleted_at)
+// 5. Redis handles: cache (tags), sessions, queue (Horizon)
