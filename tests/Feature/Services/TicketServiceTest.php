@@ -7,7 +7,6 @@ use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\Category;
 use App\Models\Ticket;
-use App\Models\TicketActivity;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,42 +21,42 @@ class TicketServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new TicketService();
+        $this->service = new TicketService;
     }
 
     // ---- createTicket ----
 
     public function test_create_ticket_persists_to_database(): void
     {
-        $user     = User::factory()->create();
+        $user = User::factory()->create();
         $category = Category::factory()->create(['sla_hours' => 24]);
 
         $ticket = $this->service->createTicket([
             'category_id' => $category->id,
-            'title'       => 'Meu ticket',
+            'title' => 'Meu ticket',
             'description' => 'Descrição do problema',
-            'priority'    => TicketPriority::HIGH->value,
+            'priority' => TicketPriority::HIGH->value,
         ], $user);
 
         $this->assertDatabaseHas('tickets', [
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'category_id' => $category->id,
-            'title'       => 'Meu ticket',
-            'status'      => TicketStatus::OPEN->value,
-            'priority'    => TicketPriority::HIGH->value,
+            'title' => 'Meu ticket',
+            'status' => TicketStatus::OPEN->value,
+            'priority' => TicketPriority::HIGH->value,
         ]);
     }
 
     public function test_create_ticket_generates_ticket_number(): void
     {
-        $user     = User::factory()->create();
+        $user = User::factory()->create();
         $category = Category::factory()->create();
 
         $ticket = $this->service->createTicket([
             'category_id' => $category->id,
-            'title'       => 'Test',
+            'title' => 'Test',
             'description' => 'Test',
-            'priority'    => TicketPriority::MEDIUM->value,
+            'priority' => TicketPriority::MEDIUM->value,
         ], $user);
 
         $this->assertMatchesRegularExpression('/^HD-\d{4}-\d{6}$/', $ticket->ticket_number);
@@ -65,14 +64,14 @@ class TicketServiceTest extends TestCase
 
     public function test_create_ticket_sets_due_date_from_priority_sla(): void
     {
-        $user     = User::factory()->create();
+        $user = User::factory()->create();
         $category = Category::factory()->create();
 
         $ticket = $this->service->createTicket([
             'category_id' => $category->id,
-            'title'       => 'Urgente',
+            'title' => 'Urgente',
             'description' => 'Problema urgente',
-            'priority'    => TicketPriority::URGENT->value,
+            'priority' => TicketPriority::URGENT->value,
         ], $user);
 
         $this->assertNotNull($ticket->due_date);
@@ -82,36 +81,36 @@ class TicketServiceTest extends TestCase
 
     public function test_create_ticket_logs_created_activity(): void
     {
-        $user     = User::factory()->create();
+        $user = User::factory()->create();
         $category = Category::factory()->create();
 
         $ticket = $this->service->createTicket([
             'category_id' => $category->id,
-            'title'       => 'Test',
+            'title' => 'Test',
             'description' => 'Test',
-            'priority'    => TicketPriority::MEDIUM->value,
+            'priority' => TicketPriority::MEDIUM->value,
         ], $user);
 
         $this->assertDatabaseHas('ticket_activities', [
             'ticket_id' => $ticket->id,
-            'user_id'   => $user->id,
-            'action'    => 'created',
+            'user_id' => $user->id,
+            'action' => 'created',
         ]);
     }
 
     public function test_create_ticket_auto_assigns_technician_from_category(): void
     {
         $technician = User::factory()->technician()->create();
-        $category   = Category::factory()->create([
+        $category = Category::factory()->create([
             'auto_assign_technician_id' => $technician->id,
         ]);
         $user = User::factory()->create();
 
         $ticket = $this->service->createTicket([
             'category_id' => $category->id,
-            'title'       => 'Test',
+            'title' => 'Test',
             'description' => 'Test',
-            'priority'    => TicketPriority::MEDIUM->value,
+            'priority' => TicketPriority::MEDIUM->value,
         ], $user);
 
         $this->assertEquals($technician->id, $ticket->fresh()->technician_id);
@@ -122,7 +121,7 @@ class TicketServiceTest extends TestCase
     public function test_assign_ticket_sets_technician(): void
     {
         $technician = User::factory()->technician()->create();
-        $ticket     = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
+        $ticket = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
 
         $this->service->assignTicket($ticket, $technician->id, $technician);
 
@@ -132,7 +131,7 @@ class TicketServiceTest extends TestCase
     public function test_assign_ticket_changes_status_to_in_progress_when_open(): void
     {
         $technician = User::factory()->technician()->create();
-        $ticket     = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
+        $ticket = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
 
         $this->service->assignTicket($ticket, $technician->id, $technician);
 
@@ -142,13 +141,13 @@ class TicketServiceTest extends TestCase
     public function test_assign_ticket_logs_assigned_activity(): void
     {
         $technician = User::factory()->technician()->create();
-        $ticket     = Ticket::factory()->create();
+        $ticket = Ticket::factory()->create();
 
         $this->service->assignTicket($ticket, $technician->id, $technician);
 
         $this->assertDatabaseHas('ticket_activities', [
             'ticket_id' => $ticket->id,
-            'action'    => 'assigned',
+            'action' => 'assigned',
         ]);
     }
 
@@ -156,7 +155,7 @@ class TicketServiceTest extends TestCase
 
     public function test_change_status_updates_ticket(): void
     {
-        $admin  = User::factory()->create(['role' => UserRole::ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $ticket = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
 
         $this->service->changeStatus($ticket, TicketStatus::IN_PROGRESS, $admin);
@@ -166,7 +165,7 @@ class TicketServiceTest extends TestCase
 
     public function test_change_status_to_resolved_sets_resolved_at_and_resolution_time(): void
     {
-        $admin  = User::factory()->create(['role' => UserRole::ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $ticket = Ticket::factory()->create(['status' => TicketStatus::IN_PROGRESS->value]);
 
         $this->service->changeStatus($ticket, TicketStatus::RESOLVED, $admin);
@@ -179,7 +178,7 @@ class TicketServiceTest extends TestCase
 
     public function test_change_status_to_closed_sets_closed_at(): void
     {
-        $admin  = User::factory()->create(['role' => UserRole::ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $ticket = Ticket::factory()->create(['status' => TicketStatus::RESOLVED->value]);
 
         $this->service->changeStatus($ticket, TicketStatus::CLOSED, $admin);
@@ -189,14 +188,14 @@ class TicketServiceTest extends TestCase
 
     public function test_change_status_logs_activity(): void
     {
-        $admin  = User::factory()->create(['role' => UserRole::ADMIN]);
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $ticket = Ticket::factory()->create(['status' => TicketStatus::OPEN->value]);
 
         $this->service->changeStatus($ticket, TicketStatus::IN_PROGRESS, $admin);
 
         $this->assertDatabaseHas('ticket_activities', [
             'ticket_id' => $ticket->id,
-            'action'    => 'status_changed',
+            'action' => 'status_changed',
         ]);
     }
 
@@ -204,18 +203,18 @@ class TicketServiceTest extends TestCase
 
     public function test_add_reply_persists_message(): void
     {
-        $user   = User::factory()->create();
+        $user = User::factory()->create();
         $ticket = Ticket::factory()->create();
 
         $reply = $this->service->addReply($ticket, [
-            'message'     => 'Aqui está a resposta.',
+            'message' => 'Aqui está a resposta.',
             'is_internal' => false,
         ], $user);
 
         $this->assertDatabaseHas('ticket_replies', [
-            'ticket_id'   => $ticket->id,
-            'user_id'     => $user->id,
-            'message'     => 'Aqui está a resposta.',
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'message' => 'Aqui está a resposta.',
             'is_internal' => false,
         ]);
     }
@@ -223,7 +222,7 @@ class TicketServiceTest extends TestCase
     public function test_add_reply_sets_response_time_on_first_technician_reply(): void
     {
         $technician = User::factory()->technician()->create();
-        $ticket     = Ticket::factory()->create(['response_time' => null]);
+        $ticket = Ticket::factory()->create(['response_time' => null]);
 
         $this->service->addReply($ticket, ['message' => 'Resposta técnica'], $technician);
 
@@ -232,14 +231,14 @@ class TicketServiceTest extends TestCase
 
     public function test_add_reply_logs_replied_activity(): void
     {
-        $user   = User::factory()->create();
+        $user = User::factory()->create();
         $ticket = Ticket::factory()->create();
 
         $this->service->addReply($ticket, ['message' => 'Resposta'], $user);
 
         $this->assertDatabaseHas('ticket_activities', [
             'ticket_id' => $ticket->id,
-            'action'    => 'replied',
+            'action' => 'replied',
         ]);
     }
 
@@ -248,7 +247,7 @@ class TicketServiceTest extends TestCase
     public function test_customer_sees_only_own_tickets(): void
     {
         $customer = User::factory()->create(['role' => UserRole::CUSTOMER]);
-        $other    = User::factory()->create(['role' => UserRole::CUSTOMER]);
+        $other = User::factory()->create(['role' => UserRole::CUSTOMER]);
 
         Ticket::factory()->count(3)->create(['user_id' => $customer->id]);
         Ticket::factory()->count(2)->create(['user_id' => $other->id]);

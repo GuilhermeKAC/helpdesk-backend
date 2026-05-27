@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\Ticket;
@@ -50,9 +49,9 @@ class DashboardService
             ->count();
 
         $stats = [
-            'total'       => array_sum($byStatus),
-            'by_status'   => $byStatus,
-            'overdue'     => $overdue,
+            'total' => array_sum($byStatus),
+            'by_status' => $byStatus,
+            'overdue' => $overdue,
         ];
 
         if ($user->role !== UserRole::CUSTOMER) {
@@ -79,7 +78,7 @@ class DashboardService
         $query = $this->baseQuery($user);
 
         $ticketsPerDay = (clone $query)
-            ->select(DB::raw("DATE(created_at) as date"), DB::raw('count(*) as total'))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as total'))
             ->where('created_at', '>=', now()->subDays(30))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date')
@@ -96,8 +95,8 @@ class DashboardService
                 ->get()
                 ->map(fn ($row) => [
                     'category' => $row->category?->name,
-                    'color'    => $row->category?->color,
-                    'total'    => $row->total,
+                    'color' => $row->category?->color,
+                    'total' => $row->total,
                 ]);
         }
 

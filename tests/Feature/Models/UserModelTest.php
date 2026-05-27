@@ -3,9 +3,6 @@
 namespace Tests\Feature\Models;
 
 use App\Enums\UserRole;
-use App\Models\Ticket;
-use App\Models\TicketActivity;
-use App\Models\TicketReply;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -32,7 +29,7 @@ class UserModelTest extends TestCase
     public function test_preferences_is_cast_to_array(): void
     {
         $prefs = ['notifications' => true, 'theme' => 'dark'];
-        $user  = User::factory()->create(['preferences' => $prefs]);
+        $user = User::factory()->create(['preferences' => $prefs]);
 
         $this->assertIsArray($user->fresh()->preferences);
         $this->assertEquals($prefs, $user->fresh()->preferences);

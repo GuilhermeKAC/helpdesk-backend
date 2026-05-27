@@ -20,9 +20,9 @@ class TicketReplyFactory extends Factory
     public function definition(): array
     {
         return [
-            'ticket_id'   => Ticket::factory(),
-            'user_id'     => User::factory(),
-            'message'     => fake()->paragraphs(2, true),
+            'ticket_id' => Ticket::factory(),
+            'user_id' => User::factory(),
+            'message' => fake()->paragraphs(2, true),
             'is_internal' => false,
         ];
     }

@@ -18,12 +18,12 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'        => fake()->unique()->words(2, true),
+            'name' => fake()->unique()->words(2, true),
             'description' => fake()->sentence(),
-            'color'       => fake()->hexColor(),
-            'icon'        => 'DocumentIcon',
-            'sla_hours'   => fake()->randomElement([4, 8, 24, 48, 72]),
-            'is_active'   => true,
+            'color' => fake()->hexColor(),
+            'icon' => 'DocumentIcon',
+            'sla_hours' => fake()->randomElement([4, 8, 24, 48, 72]),
+            'is_active' => true,
         ];
     }
 }

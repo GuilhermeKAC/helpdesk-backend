@@ -20,11 +20,11 @@ class TicketActivityFactory extends Factory
     public function definition(): array
     {
         return [
-            'ticket_id'  => Ticket::factory(),
-            'user_id'    => User::factory(),
-            'action'     => fake()->randomElement(['created', 'assigned', 'status_changed', 'replied', 'closed']),
-            'old_value'  => null,
-            'new_value'  => null,
+            'ticket_id' => Ticket::factory(),
+            'user_id' => User::factory(),
+            'action' => fake()->randomElement(['created', 'assigned', 'status_changed', 'replied', 'closed']),
+            'old_value' => null,
+            'new_value' => null,
             'ip_address' => fake()->ipv4(),
         ];
     }

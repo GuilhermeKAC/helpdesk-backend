@@ -4,7 +4,6 @@ namespace Tests\Feature\Models;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
-use App\Models\Attachment;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketActivity;
@@ -19,11 +18,11 @@ class TicketModelTest extends TestCase
 
     private function createTicket(array $overrides = []): Ticket
     {
-        $user     = User::factory()->create();
+        $user = User::factory()->create();
         $category = Category::factory()->create();
 
         return Ticket::factory()->create(array_merge([
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
             'category_id' => $category->id,
         ], $overrides));
     }
@@ -86,9 +85,9 @@ class TicketModelTest extends TestCase
 
     public function test_scope_for_user(): void
     {
-        $user  = User::factory()->create();
+        $user = User::factory()->create();
         $other = User::factory()->create();
-        $cat   = Category::factory()->create();
+        $cat = Category::factory()->create();
 
         Ticket::factory()->create(['user_id' => $user->id, 'category_id' => $cat->id]);
         Ticket::factory()->create(['user_id' => $other->id, 'category_id' => $cat->id]);
@@ -99,7 +98,7 @@ class TicketModelTest extends TestCase
     public function test_scope_for_technician(): void
     {
         $tech = User::factory()->technician()->create();
-        $cat  = Category::factory()->create();
+        $cat = Category::factory()->create();
         $user = User::factory()->create();
 
         Ticket::factory()->create(['user_id' => $user->id, 'category_id' => $cat->id, 'technician_id' => $tech->id]);

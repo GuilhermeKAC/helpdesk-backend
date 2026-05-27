@@ -37,7 +37,7 @@ class CategoryModelTest extends TestCase
     public function test_auto_assign_technician_relationship(): void
     {
         $technician = User::factory()->technician()->create();
-        $category   = Category::factory()->create([
+        $category = Category::factory()->create([
             'auto_assign_technician_id' => $technician->id,
         ]);
 
