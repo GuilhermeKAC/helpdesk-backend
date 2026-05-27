@@ -34,14 +34,14 @@ class Ticket extends Model
     protected function casts(): array
     {
         return [
-            'status'          => TicketStatus::class,
-            'priority'        => TicketPriority::class,
-            'assigned_at'     => 'datetime',
-            'resolved_at'     => 'datetime',
-            'closed_at'       => 'datetime',
-            'due_date'        => 'datetime',
-            'metadata'        => 'array',
-            'response_time'   => 'integer',
+            'status' => TicketStatus::class,
+            'priority' => TicketPriority::class,
+            'assigned_at' => 'datetime',
+            'resolved_at' => 'datetime',
+            'closed_at' => 'datetime',
+            'due_date' => 'datetime',
+            'metadata' => 'array',
+            'response_time' => 'integer',
             'resolution_time' => 'integer',
         ];
     }

@@ -24,7 +24,7 @@ class Attachment extends Model
     protected function casts(): array
     {
         return [
-            'size'     => 'integer',
+            'size' => 'integer',
             'metadata' => 'array',
         ];
     }
